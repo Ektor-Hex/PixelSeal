@@ -1,0 +1,181 @@
+<UserControl x:Class="PixelSeal.UI.Controls.ModeOptionsPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:models="clr-namespace:PixelSeal.Models;assembly=PixelSeal.Models"
+             mc:Ignorable="d" 
+             d:DesignHeight="300" d:DesignWidth="260">
+    
+    <UserControl.Resources>
+        <Style TargetType="TextBlock" x:Key="OptionLabel">
+            <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Margin" Value="0,0,0,4"/>
+        </Style>
+    </UserControl.Resources>
+    
+    <StackPanel>
+        <!-- Solid Overwrite Options -->
+        <StackPanel Visibility="{Binding SelectedMode, Converter={StaticResource EnumToVisibilityConverter}, ConverterParameter={x:Static models:RedactionMode.SolidOverwrite}}">
+            <TextBlock Text="Fill Color" Style="{StaticResource OptionLabel}"/>
+            <Grid Margin="0,0,0,8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Rectangle x:Name="SolidColorPreview" 
+                           Grid.Column="0"
+                           Width="24" Height="24" 
+                           Fill="{Binding CurrentOptions.FillColor, Converter={StaticResource HexToBrushConverter}}"
+                           Stroke="{StaticResource BorderBrush}"
+                           StrokeThickness="1"
+                           Margin="0,0,8,0"/>
+                <TextBox Grid.Column="1" 
+                         Text="{Binding CurrentOptions.FillColor, UpdateSourceTrigger=PropertyChanged}"
+                         ToolTip="Hex color (e.g., #1A1A1A)"/>
+            </Grid>
+
+            <TextBlock Text="Corner Radius (0-6)" Style="{StaticResource OptionLabel}"/>
+            <Slider Value="{Binding CurrentOptions.CornerRadius}"
+                    Minimum="0" Maximum="6"
+                    IsSnapToTickEnabled="True"
+                    TickFrequency="1"
+                    Margin="0,0,0,8"/>
+
+            <TextBlock Text="Border Color (empty = no border)" Style="{StaticResource OptionLabel}"/>
+            <TextBox Text="{Binding CurrentOptions.BorderColor, UpdateSourceTrigger=PropertyChanged}"
+                     Margin="0,0,0,8"/>
+
+            <TextBlock Text="Border Thickness" Style="{StaticResource OptionLabel}"/>
+            <Slider Value="{Binding CurrentOptions.BorderThickness}"
+                    Minimum="0" Maximum="5"
+                    IsSnapToTickEnabled="True"
+                    TickFrequency="1"
+                    Margin="0,0,0,8"/>
+        </StackPanel>
+
+        <!-- Semantic Placeholder Options -->
+        <StackPanel Visibility="{Binding SelectedMode, Converter={StaticResource EnumToVisibilityConverter}, ConverterParameter={x:Static models:RedactionMode.SemanticPlaceholder}}">
+            <TextBlock Text="Placeholder Text" Style="{StaticResource OptionLabel}"/>
+            <ComboBox SelectedItem="{Binding CurrentOptions.PlaceholderLabel}" Margin="0,0,0,8">
+                <models:PlaceholderText>Redacted</models:PlaceholderText>
+                <models:PlaceholderText>Confidential</models:PlaceholderText>
+                <models:PlaceholderText>Hidden</models:PlaceholderText>
+            </ComboBox>
+
+            <TextBlock Text="Background Color" Style="{StaticResource OptionLabel}"/>
+            <TextBox Text="{Binding CurrentOptions.PlaceholderBackgroundColor, UpdateSourceTrigger=PropertyChanged}"
+                     Margin="0,0,0,8"/>
+
+            <TextBlock Text="Text Color" Style="{StaticResource OptionLabel}"/>
+            <TextBox Text="{Binding CurrentOptions.TextColor, UpdateSourceTrigger=PropertyChanged}"
+                     Margin="0,0,0,8"/>
+
+            <TextBlock Text="Corner Radius (0-6)" Style="{StaticResource OptionLabel}"/>
+            <Slider Value="{Binding CurrentOptions.CornerRadius}"
+                    Minimum="0" Maximum="6"
+                    IsSnapToTickEnabled="True"
+                    TickFrequency="1"
+                    Margin="0,0,0,8"/>
+        </StackPanel>
+
+        <!-- Geometric Pattern Options -->
+        <StackPanel Visibility="{Binding SelectedMode, Converter={StaticResource EnumToVisibilityConverter}, ConverterParameter={x:Static models:RedactionMode.GeometricPattern}}">
+            <TextBlock Text="Pattern Type" Style="{StaticResource OptionLabel}"/>
+            <ComboBox SelectedItem="{Binding CurrentOptions.Pattern}" Margin="0,0,0,8">
+                <models:PatternType>Lines</models:PatternType>
+                <models:PatternType>Grid</models:PatternType>
+                <models:PatternType>Dots</models:PatternType>
+            </ComboBox>
+
+            <TextBlock Text="Pattern Color" Style="{StaticResource OptionLabel}"/>
+            <TextBox Text="{Binding CurrentOptions.PatternColor, UpdateSourceTrigger=PropertyChanged}"
+                     Margin="0,0,0,8"/>
+
+            <TextBlock Text="Background Color" Style="{StaticResource OptionLabel}"/>
+            <TextBox Text="{Binding CurrentOptions.PatternBackgroundColor, UpdateSourceTrigger=PropertyChanged}"
+                     Margin="0,0,0,8"/>
+
+            <TextBlock Text="Pattern Density (spacing in pixels)" Style="{StaticResource OptionLabel}"/>
+            <Slider Value="{Binding CurrentOptions.PatternDensity}"
+                    Minimum="4" Maximum="24"
+                    IsSnapToTickEnabled="True"
+                    TickFrequency="2"
+                    Margin="0,0,0,8"/>
+        </StackPanel>
+
+        <!-- Context-Aware Panel Options -->
+        <StackPanel Visibility="{Binding SelectedMode, Converter={StaticResource EnumToVisibilityConverter}, ConverterParameter={x:Static models:RedactionMode.ContextAwarePanel}}">
+            <TextBlock Text="Panel Background" Style="{StaticResource OptionLabel}"/>
+            <TextBox Text="{Binding CurrentOptions.PanelBackgroundColor, UpdateSourceTrigger=PropertyChanged}"
+                     Margin="0,0,0,8"/>
+
+            <TextBlock Text="Border Color" Style="{StaticResource OptionLabel}"/>
+            <TextBox Text="{Binding CurrentOptions.PanelBorderColor, UpdateSourceTrigger=PropertyChanged}"
+                     Margin="0,0,0,8"/>
+
+            <TextBlock Text="Corner Radius (0-6)" Style="{StaticResource OptionLabel}"/>
+            <Slider Value="{Binding CurrentOptions.CornerRadius}"
+                    Minimum="0" Maximum="6"
+                    IsSnapToTickEnabled="True"
+                    TickFrequency="1"
+                    Margin="0,0,0,8"/>
+
+            <TextBlock Text="Shadow Offset" Style="{StaticResource OptionLabel}"/>
+            <Slider Value="{Binding CurrentOptions.ShadowOffset}"
+                    Minimum="0" Maximum="8"
+                    IsSnapToTickEnabled="True"
+                    TickFrequency="1"
+                    Margin="0,0,0,8"/>
+
+            <CheckBox Content="Show Shield Icon"
+                      IsChecked="{Binding CurrentOptions.ShowIcon}"
+                      Margin="0,0,0,8"/>
+        </StackPanel>
+
+        <!-- Glass Morph Options -->
+        <StackPanel Visibility="{Binding SelectedMode, Converter={StaticResource EnumToVisibilityConverter}, ConverterParameter={x:Static models:RedactionMode.GlassMorph}}">
+            <TextBlock Text="Glass Tint Color" Style="{StaticResource OptionLabel}"/>
+            <Grid Margin="0,0,0,8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Rectangle Grid.Column="0"
+                           Width="24" Height="24" 
+                           Fill="{Binding CurrentOptions.FillColor, Converter={StaticResource HexToBrushConverter}}"
+                           Stroke="{StaticResource BorderBrush}"
+                           StrokeThickness="1"
+                           RadiusX="4" RadiusY="4"
+                           Margin="0,0,8,0"/>
+                <TextBox Grid.Column="1" 
+                         Text="{Binding CurrentOptions.FillColor, UpdateSourceTrigger=PropertyChanged}"
+                         ToolTip="Hex color for glass tint (e.g., #B4A0FF for lavender)"/>
+            </Grid>
+
+            <TextBlock Text="Corner Radius (0-20)" Style="{StaticResource OptionLabel}"/>
+            <Slider Value="{Binding CurrentOptions.CornerRadius}"
+                    Minimum="0" Maximum="20"
+                    IsSnapToTickEnabled="True"
+                    TickFrequency="2"
+                    Margin="0,0,0,8"/>
+
+            <TextBlock Text="Border Color (optional)" Style="{StaticResource OptionLabel}"/>
+            <TextBox Text="{Binding CurrentOptions.BorderColor, UpdateSourceTrigger=PropertyChanged}"
+                     Margin="0,0,0,8"/>
+
+            <TextBlock Text="Border Thickness" Style="{StaticResource OptionLabel}"/>
+            <Slider Value="{Binding CurrentOptions.BorderThickness}"
+                    Minimum="0" Maximum="5"
+                    IsSnapToTickEnabled="True"
+                    TickFrequency="1"
+                    Margin="0,0,0,8"/>
+
+            <TextBlock Text="💡 Creates a stylish frosted glass effect" 
+                       Style="{StaticResource OptionLabel}"
+                       FontStyle="Italic"
+                       Opacity="0.7"/>
+        </StackPanel>
+    </StackPanel>
+</UserControl>

@@ -1,0 +1,454 @@
+<Window x:Class="PixelSeal.UI.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:PixelSeal.UI"
+        xmlns:controls="clr-namespace:PixelSeal.UI.Controls"
+        xmlns:vm="clr-namespace:PixelSeal.UI.ViewModels"
+        xmlns:models="clr-namespace:PixelSeal.Models;assembly=PixelSeal.Models"
+        mc:Ignorable="d"
+        Title="{Binding WindowTitle}"
+        Height="800" Width="1200"
+        MinHeight="600" MinWidth="900"
+        WindowState="Maximized"
+        Background="{StaticResource BackgroundDarkBrush}"
+        WindowStartupLocation="CenterScreen">
+
+    <Window.DataContext>
+        <vm:MainViewModel/>
+    </Window.DataContext>
+
+    <Window.InputBindings>
+        <KeyBinding Key="O" Modifiers="Ctrl" Command="{Binding OpenImageCommand}"/>
+        <KeyBinding Key="S" Modifiers="Ctrl" Command="{Binding ExportImageCommand}"/>
+        <KeyBinding Key="Delete" Command="{Binding DeleteRegionCommand}"/>
+        <KeyBinding Key="Escape" Command="{Binding CancelAddRegionCommand}"/>
+    </Window.InputBindings>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Top Toolbar -->
+        <Border Grid.Row="0" 
+                Background="{StaticResource BackgroundMediumBrush}"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="0,0,0,1"
+                Padding="8,4">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Left: File Operations -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <!-- Logo/Title -->
+                    <TextBlock Text="🔒 PixelSeal" 
+                               FontSize="16" 
+                               FontWeight="Bold" 
+                               Foreground="{StaticResource HighlightBrush}"
+                               VerticalAlignment="Center"
+                               Margin="0,0,24,0"/>
+                    
+                    <Button Content="📂 Open Image" 
+                            Command="{Binding OpenImageCommand}"
+                            Style="{StaticResource ToolbarButtonStyle}"
+                            ToolTip="Open an image file (Ctrl+O)"/>
+                    
+                    <Rectangle Width="1" Fill="{StaticResource BorderBrush}" Margin="8,4"/>
+                    
+                    <Button Content="💾 Export" 
+                            Command="{Binding ExportImageCommand}"
+                            Style="{StaticResource ToolbarButtonStyle}"
+                            ToolTip="Export redacted image (Ctrl+S)"/>
+                    
+                    <ComboBox Width="80" Margin="8,0,0,0"
+                              SelectedItem="{Binding SelectedExportFormat}"
+                              ToolTip="Export format">
+                        <models:ExportFormat>PNG</models:ExportFormat>
+                        <models:ExportFormat>JPG</models:ExportFormat>
+                    </ComboBox>
+                </StackPanel>
+
+                <!-- Center: Image Info -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" 
+                            HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding ImageWidth, StringFormat='Width: {0}px'}"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               Margin="0,0,16,0"
+                               Visibility="{Binding HasImage, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                    <TextBlock Text="{Binding ImageHeight, StringFormat='Height: {0}px'}"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               Visibility="{Binding HasImage, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                </StackPanel>
+
+                <!-- Right: Status/Mode indicator -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <!-- Normal state: show region count -->
+                    <Border Background="{StaticResource BackgroundLightBrush}"
+                            CornerRadius="4"
+                            Padding="12,6"
+                            Visibility="{Binding IsAddingRegion, Converter={StaticResource InverseBoolToVisibilityConverter}}">
+                        <TextBlock>
+                            <Run Text="{Binding Regions.Count, Mode=OneWay}" FontWeight="Bold" Foreground="{StaticResource HighlightBrush}"/>
+                            <Run Text=" region(s) selected" Foreground="{StaticResource TextSecondaryBrush}"/>
+                        </TextBlock>
+                    </Border>
+                    
+                    <!-- Drawing mode: show cancel button -->
+                    <Border Background="{StaticResource HighlightBrush}"
+                            CornerRadius="4"
+                            Padding="8,6"
+                            Visibility="{Binding IsAddingRegion, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="🎯 Drawing..." 
+                                       Foreground="White" 
+                                       FontWeight="SemiBold"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,8,0"/>
+                            <Button Content="Cancel (ESC)" 
+                                    Command="{Binding CancelAddRegionCommand}"
+                                    Background="#40000000"
+                                    Foreground="White"
+                                    BorderThickness="0"
+                                    Padding="8,4"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Main Content Area -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="280"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Image Canvas Area -->
+            <Border Grid.Column="0" 
+                    Background="{StaticResource BackgroundDarkBrush}"
+                    BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="0,0,1,0">
+                <Grid>
+                    <!-- Empty State - No Image -->
+                    <StackPanel HorizontalAlignment="Center" 
+                                VerticalAlignment="Center"
+                                Visibility="{Binding HasImage, Converter={StaticResource InverseBoolToVisibilityConverter}}">
+                        <TextBlock Text="🖼️" FontSize="64" HorizontalAlignment="Center" Margin="0,0,0,16"/>
+                        <TextBlock Text="No image loaded" 
+                                   FontSize="18" 
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   HorizontalAlignment="Center"/>
+                        <TextBlock Text="Click 'Open Image' or press Ctrl+O to begin" 
+                                   FontSize="13" 
+                                   Foreground="{StaticResource TextMutedBrush}"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,8,0,0"/>
+                    </StackPanel>
+
+                    <!-- Image Canvas -->
+                    <controls:ImageCanvas x:Name="ImageCanvas"
+                                          Visibility="{Binding HasImage, Converter={StaticResource BoolToVisibilityConverter}}"
+                                          DataContext="{Binding}"/>
+                    
+                    <!-- Instructions Overlay - Only shown when NO image is loaded -->
+                    <!-- (Instructions are now in the sidebar, so we remove this overlay) -->
+                    
+                    <!-- Active Drawing Mode Indicator -->
+                    <Border HorizontalAlignment="Center" 
+                            VerticalAlignment="Top"
+                            Background="{StaticResource HighlightBrush}"
+                            CornerRadius="0,0,8,8"
+                            Padding="24,12"
+                            Visibility="{Binding IsAddingRegion, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="🎯" FontSize="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <StackPanel>
+                                <TextBlock Text="DRAWING MODE ACTIVE" 
+                                           FontSize="13" 
+                                           FontWeight="Bold"
+                                           Foreground="White"/>
+                                <TextBlock Text="Click and drag on the image to draw a rectangle" 
+                                           FontSize="11" 
+                                           Foreground="#CCFFFFFF"/>
+                            </StackPanel>
+                            <TextBlock Text="(ESC to cancel)" 
+                                       FontSize="11" 
+                                       Foreground="#99FFFFFF"
+                                       VerticalAlignment="Center"
+                                       Margin="16,0,0,0"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <!-- Right Sidebar -->
+            <Border Grid.Column="1" Background="{StaticResource BackgroundMediumBrush}">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12">
+                    <StackPanel>
+                        
+                        <!-- STEP 1: Add Region Button (Prominent) -->
+                        <Border Background="{StaticResource AccentBrush}" 
+                                CornerRadius="6" 
+                                Padding="12" 
+                                Margin="0,0,0,16"
+                                Visibility="{Binding HasImage, Converter={StaticResource BoolToVisibilityConverter}}">
+                            <StackPanel>
+                                <TextBlock Text="STEP 1: SELECT AREA" 
+                                           FontSize="10" 
+                                           FontWeight="Bold"
+                                           Foreground="#99FFFFFF"
+                                           Margin="0,0,0,8"/>
+                                <Button Content="➕ ADD REGION TO REDACT" 
+                                        Command="{Binding StartAddRegionCommand}"
+                                        Style="{StaticResource PrimaryButtonStyle}"
+                                        HorizontalAlignment="Stretch"
+                                        Padding="12,10"
+                                        FontSize="13"
+                                        Visibility="{Binding IsAddingRegion, Converter={StaticResource InverseBoolToVisibilityConverter}}"/>
+                                <Button Content="❌ CANCEL DRAWING" 
+                                        Command="{Binding CancelAddRegionCommand}"
+                                        Style="{StaticResource BaseButtonStyle}"
+                                        HorizontalAlignment="Stretch"
+                                        Padding="12,10"
+                                        Visibility="{Binding IsAddingRegion, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                <TextBlock Text="Click and drag on image after pressing button" 
+                                           FontSize="10" 
+                                           Foreground="#88FFFFFF"
+                                           TextAlignment="Center"
+                                           Margin="0,8,0,0"
+                                           Visibility="{Binding IsAddingRegion, Converter={StaticResource InverseBoolToVisibilityConverter}}"/>
+                            </StackPanel>
+                        </Border>
+                        
+                        <!-- Regions List Section -->
+                        <TextBlock Text="REGIONS TO REDACT" 
+                                   FontSize="11" 
+                                   FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextMutedBrush}"
+                                   Margin="0,0,0,8"/>
+                        
+                        <!-- Empty regions message -->
+                        <Border Background="{StaticResource BackgroundLightBrush}" 
+                                CornerRadius="4" 
+                                Padding="12"
+                                Margin="0,0,0,8"
+                                Visibility="{Binding HasRegions, Converter={StaticResource InverseBoolToVisibilityConverter}}">
+                            <TextBlock Text="No regions selected yet.&#x0a;Use 'Add Region' button above." 
+                                       FontSize="11" 
+                                       Foreground="{StaticResource TextMutedBrush}"
+                                       TextAlignment="Center"/>
+                        </Border>
+                        
+                        <ListBox ItemsSource="{Binding Regions}"
+                                 SelectedItem="{Binding SelectedRegion}"
+                                 MinHeight="60"
+                                 MaxHeight="150"
+                                 Margin="0,0,0,8"
+                                 Visibility="{Binding HasRegions, Converter={StaticResource BoolToVisibilityConverter}}">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="{Binding Description}"/>
+                                        <TextBlock Grid.Column="1" 
+                                                   Text="{Binding Width, StringFormat='{}{0:F0}×'}"
+                                                   Foreground="{StaticResource TextMutedBrush}"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+
+                        <Button Content="🗑️ Delete Selected"
+                                Command="{Binding DeleteRegionCommand}"
+                                Style="{StaticResource BaseButtonStyle}"
+                                HorizontalAlignment="Stretch"
+                                Margin="0,0,0,16"
+                                Visibility="{Binding HasRegions, Converter={StaticResource BoolToVisibilityConverter}}"/>
+
+                        <Separator Visibility="{Binding HasRegions, Converter={StaticResource BoolToVisibilityConverter}}"/>
+
+                        <!-- STEP 2: Redaction Mode Section -->
+                        <Border Background="{StaticResource BackgroundLightBrush}" 
+                                CornerRadius="6" 
+                                Padding="12" 
+                                Margin="0,8,0,16"
+                                Opacity="{Binding HasRegions, Converter={StaticResource BoolToOpacityConverter}}"
+                                Visibility="{Binding HasImage, Converter={StaticResource BoolToVisibilityConverter}}">
+                            <StackPanel>
+                                <TextBlock Text="STEP 2: CHOOSE MODE" 
+                                           FontSize="10" 
+                                           FontWeight="Bold"
+                                           Foreground="{StaticResource TextMutedBrush}"
+                                           Margin="0,0,0,8"/>
+
+                                <RadioButton Content="■ Solid Overwrite"
+                                             IsChecked="{Binding SelectedMode, Converter={StaticResource EnumToBoolConverter}, ConverterParameter={x:Static models:RedactionMode.SolidOverwrite}}"
+                                             Margin="0,4"
+                                             ToolTip="Fill with solid opaque color"/>
+                                <RadioButton Content="📝 Semantic Placeholder"
+                                             IsChecked="{Binding SelectedMode, Converter={StaticResource EnumToBoolConverter}, ConverterParameter={x:Static models:RedactionMode.SemanticPlaceholder}}"
+                                             Margin="0,4"
+                                             ToolTip="Display REDACTED/CONFIDENTIAL/HIDDEN text"/>
+                                <RadioButton Content="⬡ Geometric Pattern"
+                                             IsChecked="{Binding SelectedMode, Converter={StaticResource EnumToBoolConverter}, ConverterParameter={x:Static models:RedactionMode.GeometricPattern}}"
+                                             Margin="0,4"
+                                             ToolTip="Fill with lines, grid, or dots pattern"/>
+                                <RadioButton Content="🏷️ Context-Aware Panel"
+                                             IsChecked="{Binding SelectedMode, Converter={StaticResource EnumToBoolConverter}, ConverterParameter={x:Static models:RedactionMode.ContextAwarePanel}}"
+                                             Margin="0,4"
+                                             ToolTip="UI card style with shadow and icon"/>
+                                <RadioButton Content="✨ Glass Morph"
+                                             IsChecked="{Binding SelectedMode, Converter={StaticResource EnumToBoolConverter}, ConverterParameter={x:Static models:RedactionMode.GlassMorph}}"
+                                             Margin="0,4"
+                                             ToolTip="Frosted glass effect like Twitter/X stickers"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Shape Selection Section -->
+                        <Border Background="{StaticResource BackgroundLightBrush}" 
+                                CornerRadius="6" 
+                                Padding="12" 
+                                Margin="0,0,0,16"
+                                Visibility="{Binding HasImage, Converter={StaticResource BoolToVisibilityConverter}}">
+                            <StackPanel>
+                                <TextBlock Text="REGION SHAPE" 
+                                           FontSize="10" 
+                                           FontWeight="Bold"
+                                           Foreground="{StaticResource TextMutedBrush}"
+                                           Margin="0,0,0,8"/>
+
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                    <RadioButton Content="▭ Rectangle"
+                                                 IsChecked="{Binding SelectedShape, Converter={StaticResource EnumToBoolConverter}, ConverterParameter={x:Static models:RegionShape.Rectangle}}"
+                                                 Margin="0,0,12,0"
+                                                 ToolTip="Draw rectangular regions"/>
+                                    <RadioButton Content="⬭ Ellipse"
+                                                 IsChecked="{Binding SelectedShape, Converter={StaticResource EnumToBoolConverter}, ConverterParameter={x:Static models:RegionShape.Ellipse}}"
+                                                 Margin="0,0,12,0"
+                                                 ToolTip="Draw elliptical/circular regions"/>
+                                    <RadioButton Content="✏️ Brush"
+                                                 IsChecked="{Binding SelectedShape, Converter={StaticResource EnumToBoolConverter}, ConverterParameter={x:Static models:RegionShape.FreeForm}}"
+                                                 ToolTip="Draw freeform with brush"/>
+                                </StackPanel>
+
+                                <!-- Brush Size (only for FreeForm) -->
+                                <StackPanel Visibility="{Binding SelectedShape, Converter={StaticResource EnumToVisibilityConverter}, ConverterParameter={x:Static models:RegionShape.FreeForm}}">
+                                    <TextBlock Text="Brush Size" 
+                                               FontSize="11" 
+                                               Foreground="{StaticResource TextSecondaryBrush}"
+                                               Margin="0,8,0,4"/>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="40"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Slider Grid.Column="0"
+                                                Value="{Binding BrushSize}"
+                                                Minimum="5" Maximum="100"
+                                                TickFrequency="5"
+                                                IsSnapToTickEnabled="True"/>
+                                        <TextBlock Grid.Column="1"
+                                                   Text="{Binding BrushSize, StringFormat='{}{0:F0}px'}"
+                                                   Foreground="{StaticResource TextMutedBrush}"
+                                                   TextAlignment="Right"
+                                                   VerticalAlignment="Center"/>
+                                    </Grid>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Mode Options Section -->
+                        <TextBlock Text="OPTIONS" 
+                                   FontSize="11" 
+                                   FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextMutedBrush}"
+                                   Margin="0,0,0,8"
+                                   Visibility="{Binding HasRegions, Converter={StaticResource BoolToVisibilityConverter}}"/>
+
+                        <controls:ModeOptionsPanel DataContext="{Binding}" 
+                                                   Margin="0,0,0,16"
+                                                   Visibility="{Binding HasRegions, Converter={StaticResource BoolToVisibilityConverter}}"/>
+
+                        <Separator Visibility="{Binding HasRegions, Converter={StaticResource BoolToVisibilityConverter}}"/>
+
+                        <!-- STEP 3: Apply Button -->
+                        <Border Background="{StaticResource HighlightBrush}" 
+                                CornerRadius="6" 
+                                Padding="12" 
+                                Margin="0,8,0,0"
+                                Opacity="{Binding HasRegions, Converter={StaticResource BoolToOpacityConverter}}"
+                                Visibility="{Binding HasImage, Converter={StaticResource BoolToVisibilityConverter}}">
+                            <StackPanel>
+                                <TextBlock Text="STEP 3: APPLY &amp; EXPORT" 
+                                           FontSize="10" 
+                                           FontWeight="Bold"
+                                           Foreground="#99FFFFFF"
+                                           Margin="0,0,0,8"/>
+                                <Button Content="✅ APPLY REDACTION"
+                                        Command="{Binding ApplyRedactionCommand}"
+                                        Background="#FFFFFF"
+                                        Foreground="{StaticResource HighlightBrush}"
+                                        HorizontalAlignment="Stretch"
+                                        Padding="12,10"
+                                        FontSize="13"
+                                        FontWeight="Bold"/>
+                                <TextBlock Text="Preview the redacted result" 
+                                           FontSize="10" 
+                                           Foreground="#88FFFFFF"
+                                           TextAlignment="Center"
+                                           Margin="0,8,0,0"/>
+                            </StackPanel>
+                        </Border>
+
+                        <Button Content="🔄 Return to Edit Mode"
+                                Command="{Binding ClearPreviewCommand}"
+                                Style="{StaticResource BaseButtonStyle}"
+                                HorizontalAlignment="Stretch"
+                                Visibility="{Binding IsPreviewMode, Converter={StaticResource BoolToVisibilityConverter}}"
+                                Margin="0,8,0,0"/>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Grid>
+
+        <!-- Status Bar -->
+        <Border Grid.Row="2" 
+                Background="{StaticResource SecondaryBrush}"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="0,1,0,0"
+                Padding="12,6">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0" 
+                           Text="{Binding StatusMessage}"
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           VerticalAlignment="Center"/>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <TextBlock Text="{Binding Regions.Count, StringFormat='Regions: {0}'}"
+                               Foreground="{StaticResource TextMutedBrush}"
+                               Margin="0,0,16,0"/>
+                    <TextBlock Text="Preview Mode" 
+                               Foreground="{StaticResource WarningBrush}"
+                               FontWeight="SemiBold"
+                               Visibility="{Binding IsPreviewMode, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>
