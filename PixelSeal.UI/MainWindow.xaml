@@ -312,6 +312,10 @@
                                              IsChecked="{Binding SelectedMode, Converter={StaticResource EnumToBoolConverter}, ConverterParameter={x:Static models:RedactionMode.GlassMorph}}"
                                              Margin="0,4"
                                              ToolTip="Frosted glass effect like Twitter/X stickers"/>
+                                <RadioButton Content="🌫️ Aesthetic Blur"
+                                             IsChecked="{Binding SelectedMode, Converter={StaticResource EnumToBoolConverter}, ConverterParameter={x:Static models:RedactionMode.AestheticBlur}}"
+                                             Margin="0,4"
+                                             ToolTip="iOS-style blur with environmental color matching"/>
                             </StackPanel>
                         </Border>
 

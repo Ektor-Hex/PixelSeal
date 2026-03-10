@@ -177,5 +177,33 @@
                        FontStyle="Italic"
                        Opacity="0.7"/>
         </StackPanel>
+
+        <!-- Aesthetic Blur Options -->
+        <StackPanel Visibility="{Binding SelectedMode, Converter={StaticResource EnumToVisibilityConverter}, ConverterParameter={x:Static models:RedactionMode.AestheticBlur}}">
+            <TextBlock Text="Blur Intensity (5-50)" Style="{StaticResource OptionLabel}"/>
+            <Slider Value="{Binding CurrentOptions.BlurRadius}"
+                    Minimum="5" Maximum="50"
+                    IsSnapToTickEnabled="True"
+                    TickFrequency="5"
+                    Margin="0,0,0,8"/>
+
+            <TextBlock Text="Corner Radius (0-20)" Style="{StaticResource OptionLabel}"/>
+            <Slider Value="{Binding CurrentOptions.CornerRadius}"
+                    Minimum="0" Maximum="20"
+                    IsSnapToTickEnabled="True"
+                    TickFrequency="2"
+                    Margin="0,0,0,8"/>
+
+            <TextBlock Text="🎨 Color automatically adapts to image" 
+                       Style="{StaticResource OptionLabel}"
+                       FontStyle="Italic"
+                       Opacity="0.7"
+                       Margin="0,0,0,4"/>
+            
+            <TextBlock Text="💡 Creates iOS-style privacy blur" 
+                       Style="{StaticResource OptionLabel}"
+                       FontStyle="Italic"
+                       Opacity="0.7"/>
+        </StackPanel>
     </StackPanel>
 </UserControl>

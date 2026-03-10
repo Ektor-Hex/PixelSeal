@@ -34,7 +34,7 @@ public sealed class RedactionEngine
         // Apply each redaction
         foreach (var region in regions)
         {
-            ApplyRegion(canvas, region);
+            ApplyRegion(canvas, sourceImage, region);
         }
 
         canvas.Flush();
@@ -44,7 +44,7 @@ public sealed class RedactionEngine
     /// <summary>
     /// Applies a single redaction region to the canvas.
     /// </summary>
-    private void ApplyRegion(SKCanvas canvas, RedactionRegion region)
+    private void ApplyRegion(SKCanvas canvas, SKBitmap sourceBitmap, RedactionRegion region)
     {
         // Normalize region bounds
         float x = region.X;
@@ -72,14 +72,22 @@ public sealed class RedactionEngine
         switch (region.Shape)
         {
             case RegionShape.Ellipse:
-                ApplyEllipseRegion(canvas, skRect, strategy, region.Options);
+                ApplyEllipseRegion(canvas, sourceBitmap, skRect, strategy, region.Options);
                 break;
             case RegionShape.FreeForm:
-                ApplyFreeFormRegion(canvas, region, strategy);
+                ApplyFreeFormRegion(canvas, sourceBitmap, region, strategy);
                 break;
             case RegionShape.Rectangle:
             default:
-                strategy.Apply(canvas, skRect, region.Options);
+                // Pass source bitmap to strategy for pixel-based effects
+                if (strategy is Strategies.AestheticBlurStrategy blurStrategy)
+                {
+                    blurStrategy.ApplyWithSource(canvas, sourceBitmap, skRect, region.Options);
+                }
+                else
+                {
+                    strategy.Apply(canvas, skRect, region.Options);
+                }
                 break;
         }
     }
@@ -87,7 +95,7 @@ public sealed class RedactionEngine
     /// <summary>
     /// Applies redaction to an elliptical region.
     /// </summary>
-    private void ApplyEllipseRegion(SKCanvas canvas, SKRect bounds, IRedactionStrategy strategy, RedactionOptions options)
+    private void ApplyEllipseRegion(SKCanvas canvas, SKBitmap sourceBitmap, SKRect bounds, IRedactionStrategy strategy, RedactionOptions options)
     {
         // Save canvas state and clip to ellipse
         canvas.Save();
@@ -97,7 +105,14 @@ public sealed class RedactionEngine
         canvas.ClipPath(clipPath);
         
         // Apply the strategy within the clipped area
-        strategy.Apply(canvas, bounds, options);
+        if (strategy is Strategies.AestheticBlurStrategy blurStrategy)
+        {
+            blurStrategy.ApplyWithSource(canvas, sourceBitmap, bounds, options);
+        }
+        else
+        {
+            strategy.Apply(canvas, bounds, options);
+        }
         
         canvas.Restore();
     }
@@ -105,7 +120,7 @@ public sealed class RedactionEngine
     /// <summary>
     /// Applies redaction to a free-form brush stroke region.
     /// </summary>
-    private void ApplyFreeFormRegion(SKCanvas canvas, RedactionRegion region, IRedactionStrategy strategy)
+    private void ApplyFreeFormRegion(SKCanvas canvas, SKBitmap sourceBitmap, RedactionRegion region, IRedactionStrategy strategy)
     {
         if (region.PathPoints.Count < 2)
             return;
@@ -142,24 +157,67 @@ public sealed class RedactionEngine
         canvas.ClipPath(fillPath);
         
         // Apply the strategy within the clipped brush stroke area
-        strategy.Apply(canvas, bounds, region.Options);
+        if (strategy is Strategies.AestheticBlurStrategy blurStrategy)
+        {
+            blurStrategy.ApplyWithSource(canvas, sourceBitmap, bounds, region.Options);
+        }
+        else
+        {
+            strategy.Apply(canvas, bounds, region.Options);
+        }
         
         canvas.Restore();
     }
 
     /// <summary>
-    /// Validates that a region is within image bounds.
+    /// Validates that a region is within image bounds and meets all requirements.
+    /// Enhanced validation prevents silent failures and edge cases.
     /// </summary>
+    /// <param name="region">The region to validate</param>
+    /// <param name="imageWidth">Image width in pixels</param>
+    /// <param name="imageHeight">Image height in pixels</param>
+    /// <returns>True if region is valid, false otherwise</returns>
     public static bool IsRegionValid(RedactionRegion region, int imageWidth, int imageHeight)
     {
+        // Check for zero-area regions
         if (region.Width == 0 || region.Height == 0)
             return false;
 
+        // Normalize coordinates
         float left = Math.Min(region.X, region.X + region.Width);
         float top = Math.Min(region.Y, region.Y + region.Height);
         float right = Math.Max(region.X, region.X + region.Width);
         float bottom = Math.Max(region.Y, region.Y + region.Height);
+        
+        // Check minimum dimensions (at least 1px each)
+        float width = right - left;
+        float height = bottom - top;
+        if (width < 1 || height < 1)
+            return false;
 
-        return left >= 0 && top >= 0 && right <= imageWidth && bottom <= imageHeight;
+        // Check image bounds
+        if (left < 0 || top < 0 || right > imageWidth || bottom > imageHeight)
+            return false;
+            
+        // FreeForm-specific validation
+        if (region.Shape == RegionShape.FreeForm)
+        {
+            // Must have at least 2 points to draw a stroke
+            if (region.PathPoints == null || region.PathPoints.Count < 2)
+                return false;
+                
+            // Validate all points are within bounds
+            foreach (var point in region.PathPoints)
+            {
+                if (point.X < 0 || point.X > imageWidth || point.Y < 0 || point.Y > imageHeight)
+                    return false;
+            }
+            
+            // Validate brush size is reasonable
+            if (region.BrushSize < 1 || region.BrushSize > 200)
+                return false;
+        }
+
+        return true;
     }
 }

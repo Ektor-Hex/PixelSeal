@@ -30,5 +30,13 @@ public enum RedactionMode
     /// Frosted glass/morph effect with color tint.
     /// Stylish effect similar to Twitter/X stickers.
     /// </summary>
-    GlassMorph
+    GlassMorph,
+
+    /// <summary>
+    /// iOS-style aesthetic blur effect.
+    /// WARNING: This is NOT a secure redaction mode.
+    /// This blur is purely visual/aesthetic and may be reversible.
+    /// Use only for non-sensitive content where visual obfuscation is sufficient.
+    /// </summary>
+    AestheticBlur
 }

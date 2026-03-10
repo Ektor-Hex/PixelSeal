@@ -17,6 +17,7 @@ public static class RedactionStrategyFactory
         Register(new Strategies.GeometricPatternStrategy());
         Register(new Strategies.ContextAwarePanelStrategy());
         Register(new Strategies.GlassMorphStrategy());
+        Register(new Strategies.AestheticBlurStrategy());
     }
 
     private static void Register(IRedactionStrategy strategy)
